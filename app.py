@@ -4,11 +4,10 @@ import requests
 import altair as alt
 
 # ===== CONFIGURACIÓN =====
-CHANNEL_ID = "3099319"  # Reemplaza con tu canal
-READ_API_KEY = "33IXOBQJG1S9KVJY"  # Si el canal es privado
-N_RESULTS = 500  # número de muestras a leer
+CHANNEL_ID = "3099319"
+READ_API_KEY = "33IXOBQJG1S9KVJY"
+N_RESULTS = 500
 
-# ===== FUNCIÓN PARA DESCARGAR DATOS =====
 def get_data():
     url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results={N_RESULTS}"
     if READ_API_KEY:
@@ -18,7 +17,6 @@ def get_data():
         data = r.json()["feeds"]
         df = pd.DataFrame(data)
         df["created_at"] = pd.to_datetime(df["created_at"])
-        # convierte a numérico los fields
         for i in range(1, 8):
             if f"field{i}" in df.columns:
                 df[f"field{i}"] = pd.to_numeric(df[f"field{i}"], errors="coerce")
@@ -27,29 +25,16 @@ def get_data():
         st.error("❌ Error al obtener datos de ThingSpeak")
         return pd.DataFrame()
 
-# ===== ENCABEZADO CON LOGOS =====
-col1, col2, col3 = st.columns([1,6,1])
-with col1:
-    st.image("um_logo.png", width=100)  # Logo Universidad Mariana
-with col2:
-    st.markdown(
-        "<h2 style='text-align: center;'>🌊 PicoHidroelectrica - Ingeniería Mecatrónica<br>"
-        "Acuimayo (Piscicultura en Sibundoy, Putumayo)<br>Universidad Mariana</h2>",
-        unsafe_allow_html=True
-    )
-with col3:
-    st.image("acuimayo_logo.png", width=100)  # Logo Acuimayo
+# ===== DASHBOARD =====
+st.title("🌊 PicoHidroelectrica - Ingeniería Mecatrónica\nAcuimayo (Sibundoy, Putumayo) - Universidad Mariana")
 
-st.write("Visualización en tiempo real de los datos enviados desde el ESP32 en la planta de Acuimayo.")
-
-# ===== DATOS =====
 df = get_data()
 
 if not df.empty:
     st.subheader("📋 Datos recientes")
-    st.write(df.tail(10))  # muestra las últimas filas
-    
-    # Botón para descargar CSV
+    st.write(df.tail(10))
+
+    # Botón para descargar historial
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="⬇ Descargar historial completo (CSV)",
@@ -58,48 +43,27 @@ if not df.empty:
         mime="text/csv",
     )
 
-    # ===== Gráficas =====
+    # ===== Gráficas con verificación =====
+    def plot_line(df, field, color, title, ylabel):
+        if field in df.columns and df[field].notna().sum() > 0:
+            chart = alt.Chart(df).mark_line(color=color).encode(
+                x="created_at:T",
+                y=alt.Y(field, title=ylabel),
+                tooltip=["created_at", field]
+            ).properties(title=title)
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info(f"⚠ No hay datos disponibles para {title}")
+
     st.subheader("📈 Temperatura y Humedad")
-    chart1 = alt.Chart(df).mark_line().encode(
-        x="created_at:T",
-        y="field1:Q",
-        tooltip=["created_at", "field1"]
-    ).properties(title="Temperatura (°C)")
-    chart2 = alt.Chart(df).mark_line(color="green").encode(
-        x="created_at:T",
-        y="field2:Q",
-        tooltip=["created_at", "field2"]
-    ).properties(title="Humedad (%)")
-    st.altair_chart(chart1, use_container_width=True)
-    st.altair_chart(chart2, use_container_width=True)
+    plot_line(df, "field1", "blue", "Temperatura (°C)", "°C")
+    plot_line(df, "field2", "green", "Humedad (%)", "%")
 
     st.subheader("⚡ Energía Eléctrica")
-    chart3 = alt.Chart(df).mark_line(color="orange").encode(
-        x="created_at:T",
-        y="field4:Q",
-        tooltip=["created_at", "field4"]
-    ).properties(title="Voltaje (V)")
-    chart4 = alt.Chart(df).mark_line(color="red").encode(
-        x="created_at:T",
-        y="field5:Q",
-        tooltip=["created_at", "field5"]
-    ).properties(title="Corriente (A)")
-    chart5 = alt.Chart(df).mark_line(color="purple").encode(
-        x="created_at:T",
-        y="field6:Q",
-        tooltip=["created_at", "field6"]
-    ).properties(title="Potencia (W)")
-    chart6 = alt.Chart(df).mark_line(color="blue").encode(
-        x="created_at:T",
-        y="field7:Q",
-        tooltip=["created_at", "field7"]
-    ).properties(title="Energía (kWh)")
-    
-    st.altair_chart(chart3, use_container_width=True)
-    st.altair_chart(chart4, use_container_width=True)
-    st.altair_chart(chart5, use_container_width=True)
-    st.altair_chart(chart6, use_container_width=True)
+    plot_line(df, "field4", "orange", "Voltaje (V)", "Voltios")
+    plot_line(df, "field5", "red", "Corriente (A)", "Amperios")
+    plot_line(df, "field6", "purple", "Potencia (W)", "Watts")
+    plot_line(df, "field7", "blue", "Energía (kWh)", "kWh")
 
 else:
     st.warning("⚠ No se pudieron cargar los datos aún.")
-
