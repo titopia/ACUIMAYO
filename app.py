@@ -9,8 +9,8 @@ st.set_page_config(page_title="Acuimayo - Monitoreo", layout="wide")
 st.title("🐟 Acuimayo - Monitoreo en Tiempo Real")
 
 # ====== DESCARGA DE DATOS DESDE THINGSPEAK ======
-CHANNEL_ID = "TU_CHANNEL_ID"   # reemplazar
-READ_API_KEY = "TU_API_KEY"    # reemplazar
+CHANNEL_ID = "3099319"   # reemplazar
+READ_API_KEY = "33IXOBQJG1S9KVJY"    # reemplazar
 
 url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=100"
 response = requests.get(url)
@@ -66,3 +66,4 @@ with tabs[4]:
 # ====== PESTAÑA: ENERGÍA ======
 with tabs[5]:
     mostrar_grafico(df, "field7", "Energía", "green", "kWh")
+
