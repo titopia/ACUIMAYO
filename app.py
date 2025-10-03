@@ -25,16 +25,29 @@ def get_data():
         st.error("❌ Error al obtener datos de ThingSpeak")
         return pd.DataFrame()
 
-# ===== DASHBOARD =====
-st.title("🌊 PicoHidroelectrica - Ingeniería Mecatrónica\nAcuimayo (Sibundoy, Putumayo) - Universidad Mariana")
+# ===== ENCABEZADO =====
+col1, col2, col3 = st.columns([1,4,1])
 
+with col1:
+    st.image("acuimayo_logo.png", width=200)
+
+with col2:
+    st.markdown("<h2 style='text-align: center; color: #004080;'>🌊 PicoHidroelectrica - Ingeniería Mecatrónica<br>Acuimayo (Sibundoy, Putumayo)</h2>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #333;'>Universidad Mariana</h4>", unsafe_allow_html=True)
+
+with col3:
+    st.image("acuimayo_logo.png", width=200)  # Ejemplo logo Acuimayo
+
+st.markdown("---")
+
+# ===== DASHBOARD =====
 df = get_data()
 
 if not df.empty:
     st.subheader("📋 Datos recientes")
     st.write(df.tail(10))
 
-    # Botón para descargar historial
+    # Botón descarga CSV
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="⬇ Descargar historial completo (CSV)",
@@ -43,7 +56,7 @@ if not df.empty:
         mime="text/csv",
     )
 
-    # ===== Gráficas con verificación =====
+    # ===== FUNCION PARA GRAFICOS =====
     def plot_line(df, field, color, title, ylabel):
         if field in df.columns and df[field].notna().sum() > 0:
             chart = alt.Chart(df).mark_line(color=color).encode(
@@ -55,6 +68,7 @@ if not df.empty:
         else:
             st.info(f"⚠ No hay datos disponibles para {title}")
 
+    # ===== GRAFICOS =====
     st.subheader("📈 Temperatura y Humedad")
     plot_line(df, "field1", "blue", "Temperatura (°C)", "°C")
     plot_line(df, "field2", "green", "Humedad (%)", "%")
