@@ -1,142 +1,104 @@
 import streamlit as st
 import pandas as pd
 import requests
-import altair as alt
 import plotly.graph_objects as go
 
-# -------------------------------
-# CONFIGURACIÓN DE LA PÁGINA
-# -------------------------------
-st.set_page_config(
-    page_title="Picohidroelectrica - Ingeniería Mecatrónica Acuimayo",
-    page_icon="⚡",
-    layout="wide"
-)
+# ===== CONFIGURACIÓN =====
+CHANNEL_ID = "3099319"   # tu canal ThingSpeak
+READ_API_KEY = "33IXOBQJG1S9KVJY"
+N_RESULTS = 100
 
-# 🔄 Refresco automático cada 30 segundos
-st_autorefresh = st.experimental_rerun  # para compatibilidad
+# ===== AUTO REFRESH =====
 st_autorefresh = st.experimental_autorefresh(interval=30 * 1000, limit=None, key="refresh")
 
-# Encabezado con logos
-col1, col2, col3 = st.columns([1, 6, 1])
+# ===== CABECERA CON LOGOS =====
+col1, col2, col3 = st.columns([1, 4, 1])
+
 with col1:
-    st.image("logo_universidad.png", width=100)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/8/88/Logo_Universidad_Mariana.png", width=120)
+
 with col2:
-    st.markdown(
-        "<h2 style='text-align:center;'>Picohidroelectrica Ingeniería Mecatrónica - Acuimayo Universidad Mariana</h2>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<h2 style='text-align: center; color: #003366;'>🌊 PicoHidroelectrica - Ingeniería Mecatrónica</h2>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center;'>Proyecto en la piscicultura <b>Acuimayo (Sibundoy, Putumayo)</b></h4>", unsafe_allow_html=True)
+
 with col3:
-    st.image("logo_proyecto.png", width=100)
+    st.image("https://i.ibb.co/8mQyMz2/acuimayo-logo.png", width=120)  # Cambia por tu logo oficial
 
-st.write("---")
-
-# -------------------------------
-# FUNCIÓN PARA CARGAR DATOS
-# -------------------------------
-def cargar_datos_thingspeak(channel_id, api_key, results=100):
-    url = f"https://api.thingspeak.com/channels/{channel_id}/feeds.json?api_key={api_key}&results={results}"
-    response = requests.get(url)
-    data = response.json()
-
-    if "feeds" not in data:
+# ===== FUNCIÓN PARA OBTENER DATOS =====
+def get_data():
+    url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results={N_RESULTS}"
+    if READ_API_KEY:
+        url += f"&api_key={READ_API_KEY}"
+    r = requests.get(url)
+    if r.status_code == 200:
+        data = r.json()["feeds"]
+        df = pd.DataFrame(data)
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        for i in range(1, 8):
+            if f"field{i}" in df.columns:
+                df[f"field{i}"] = pd.to_numeric(df[f"field{i}"], errors="coerce")
+        return df
+    else:
+        st.error("❌ Error al obtener datos de ThingSpeak")
         return pd.DataFrame()
 
-    df = pd.DataFrame(data["feeds"])
-    df["created_at"] = pd.to_datetime(df["created_at"])
-    return df
+# ===== DASHBOARD =====
+df = get_data()
 
-# -------------------------------
-# FUNCIÓN PARA MOSTRAR GRÁFICOS
-# -------------------------------
-def mostrar_grafico(df, campo, nombre, unidad, color="blue"):
-    if campo not in df.columns:
-        st.warning(f"No hay datos para {nombre}")
-        return
+if not df.empty:
+    tabs = st.tabs(["⚡ Energía", "🔌 Voltaje", "🔋 Corriente", "🌡️ Temperatura"])
 
-    df[campo] = pd.to_numeric(df[campo], errors="coerce")
+    # -------- TAB ENERGÍA --------
+    with tabs[0]:
+        st.subheader("⚡ Energía")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df["created_at"], y=df["field1"], mode="lines+markers", name="Energía"))
+        fig.update_layout(title="Energía generada", xaxis_title="Tiempo", yaxis_title="Energía (Wh)")
+        st.plotly_chart(fig, use_container_width=True)
 
-    if df[campo].isna().all():
-        st.warning(f"Datos no válidos en {nombre}")
-        return
+    # -------- TAB VOLTAJE --------
+    with tabs[1]:
+        st.subheader("🔌 Voltaje")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df["created_at"], y=df["field2"], mode="lines+markers", name="Voltaje", line=dict(color="blue")))
+        fig.update_layout(title="Voltaje generado", xaxis_title="Tiempo", yaxis_title="Voltaje (V)")
+        st.plotly_chart(fig, use_container_width=True)
 
-    valor_actual = df[campo].iloc[-1]
+    # -------- TAB CORRIENTE --------
+    with tabs[2]:
+        st.subheader("🔋 Corriente")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df["created_at"], y=df["field3"], mode="lines+markers", name="Corriente", line=dict(color="green")))
+        fig.update_layout(title="Corriente generada", xaxis_title="Tiempo", yaxis_title="Corriente (A)")
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Valor actual como métrica
-    st.metric(label=f"{nombre} actual", value=f"{valor_actual:.2f} {unidad}")
+    # -------- TAB TEMPERATURA --------
+    with tabs[3]:
+        st.subheader("🌡️ Temperatura")
+        temp_actual = df["field4"].iloc[-1]
 
-    # Gráfico de línea
-    chart = alt.Chart(df).mark_line(color=color).encode(
-        x="created_at:T",
-        y=alt.Y(campo, title=f"{nombre} ({unidad})")
-    ).properties(
-        width="container",
-        height=300
-    )
-    st.altair_chart(chart, use_container_width=True)
+        # Gadget tipo velocímetro
+        gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=temp_actual,
+            title={'text': "Temperatura Agua (°C)"},
+            gauge={
+                'axis': {'range': [0, 40]},
+                'bar': {'color': "red"},
+                'steps': [
+                    {'range': [0, 20], 'color': "lightblue"},
+                    {'range': [20, 30], 'color': "lightgreen"},
+                    {'range': [30, 40], 'color': "orange"}
+                ]
+            }
+        ))
+        st.plotly_chart(gauge, use_container_width=True)
 
-# -------------------------------
-# FUNCIÓN PARA GAUGE (Plotly)
-# -------------------------------
-def mostrar_gauge(valor, nombre, unidad, min_val=0, max_val=100, color="blue"):
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=valor,
-        title={'text': f"{nombre} ({unidad})"},
-        gauge={
-            'axis': {'range': [min_val, max_val]},
-            'bar': {'color': color},
-            'borderwidth': 2,
-            'bordercolor': "gray"
-        }
-    ))
-    st.plotly_chart(fig, use_container_width=True)
+        # Histórico
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df["created_at"], y=df["field4"], mode="lines+markers", name="Temperatura", line=dict(color="red")))
+        fig.update_layout(title="Histórico de Temperatura", xaxis_title="Tiempo", yaxis_title="°C")
+        st.plotly_chart(fig, use_container_width=True)
 
-# -------------------------------
-# CARGA DE DATOS
-# -------------------------------
-CHANNEL_ID = "3099319"   # tu canal en ThingSpeak
-API_KEY = "33IXOBQJG1S9KVJY"  # tu API KEY de solo lectura
-df = cargar_datos_thingspeak(CHANNEL_ID, API_KEY, results=200)
-
-# -------------------------------
-# PESTAÑAS
-# -------------------------------
-tabs = st.tabs(["🌡️ Temperatura", "💧 Humedad", "⚡ Voltaje", "🔌 Corriente", "💡 Potencia", "🔋 Energía", "📜 Historial"])
-
-with tabs[0]:
-    if "field1" in df.columns:
-        df["field1"] = pd.to_numeric(df["field1"], errors="coerce")
-        valor = df["field1"].iloc[-1]
-        st.metric("Temperatura actual", f"{valor:.2f} °C")
-        mostrar_gauge(valor, "Temperatura", "°C", min_val=0, max_val=50, color="red")
-        mostrar_grafico(df, "field1", "Temperatura", "°C", color="red")
-
-with tabs[1]:
-    mostrar_grafico(df, "field2", "Humedad", "%", color="green")
-
-with tabs[2]:
-    if "field3" in df.columns:
-        df["field3"] = pd.to_numeric(df["field3"], errors="coerce")
-        valor = df["field3"].iloc[-1]
-        st.metric("Voltaje actual", f"{valor:.2f} V")
-        mostrar_gauge(valor, "Voltaje", "V", min_val=0, max_val=50, color="orange")
-
-with tabs[3]:
-    if "field4" in df.columns:
-        df["field4"] = pd.to_numeric(df["field4"], errors="coerce")
-        valor = df["field4"].iloc[-1]
-        st.metric("Corriente actual", f"{valor:.2f} A")
-        mostrar_gauge(valor, "Corriente", "A", min_val=0, max_val=10, color="purple")
-
-with tabs[4]:
-    mostrar_grafico(df, "field5", "Potencia", "W", color="blue")
-
-with tabs[5]:
-    mostrar_grafico(df, "field6", "Energía", "Wh", color="brown")
-
-with tabs[6]:
-    st.subheader("📜 Historial de datos")
-    st.dataframe(df)
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("Descargar historial CSV", data=csv, file_name="historial_acuimayo.csv", mime="text/csv")
+else:
+    st.warning("No se encontraron datos para mostrar 🚧")
