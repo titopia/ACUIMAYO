@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import altair as alt
+import plotly.graph_objects as go
 
 # ===== CONFIGURACIÓN =====
 CHANNEL_ID = "3099319"
@@ -29,14 +30,14 @@ def get_data():
 col1, col2, col3 = st.columns([1,4,1])
 
 with col1:
-    st.image("acuimayo_logo.png", width=200)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Escudo_Universidad_Mariana.svg/1200px-Escudo_Universidad_Mariana.svg.png", width=100)
 
 with col2:
     st.markdown("<h2 style='text-align: center; color: #004080;'>🌊 PicoHidroelectrica - Ingeniería Mecatrónica<br>Acuimayo (Sibundoy, Putumayo)</h2>", unsafe_allow_html=True)
     st.markdown("<h4 style='text-align: center; color: #333;'>Universidad Mariana</h4>", unsafe_allow_html=True)
 
 with col3:
-    st.image("acuimayo_logo.png", width=200)  # Ejemplo logo Acuimayo
+    st.image("https://i.imgur.com/4Yp9Z3T.png", width=100)  # Logo ejemplo de Acuimayo
 
 st.markdown("---")
 
@@ -55,6 +56,37 @@ if not df.empty:
         file_name="historial_acuimayo.csv",
         mime="text/csv",
     )
+
+    # ===== GADGETS (Voltaje y Corriente) =====
+    st.subheader("⚡ Indicadores en Tiempo Real")
+    latest = df.tail(1)
+    voltaje = latest["field4"].iloc[0] if "field4" in latest.columns else None
+    corriente = latest["field5"].iloc[0] if "field5" in latest.columns else None
+
+    colg1, colg2 = st.columns(2)
+    with colg1:
+        if voltaje is not None:
+            fig_v = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=voltaje,
+                title={'text': "Voltaje (V)"},
+                gauge={'axis': {'range': [0, 250]}, 'bar': {'color': "orange"}}
+            ))
+            st.plotly_chart(fig_v, use_container_width=True)
+        else:
+            st.info("⚠ No hay datos de voltaje.")
+
+    with colg2:
+        if corriente is not None:
+            fig_c = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=corriente,
+                title={'text': "Corriente (A)"},
+                gauge={'axis': {'range': [0, 20]}, 'bar': {'color': "red"}}
+            ))
+            st.plotly_chart(fig_c, use_container_width=True)
+        else:
+            st.info("⚠ No hay datos de corriente.")
 
     # ===== FUNCION PARA GRAFICOS =====
     def plot_line(df, field, color, title, ylabel):
