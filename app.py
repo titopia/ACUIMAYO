@@ -17,14 +17,14 @@ st.set_page_config(
 # Encabezado con logos
 col1, col2, col3 = st.columns([1, 6, 1])
 with col1:
-    st.image("logo_universidad.png", width=100)
+    st.image("um_logo.png", width=100)
 with col2:
     st.markdown(
         "<h2 style='text-align:center;'>Picohidroelectrica Ingeniería Mecatrónica - Acuimayo Universidad Mariana</h2>",
         unsafe_allow_html=True
     )
 with col3:
-    st.image("logo_proyecto.png", width=100)
+    st.image("acuimayo_logo.png", width=100)
 
 st.write("---")
 
@@ -135,3 +135,4 @@ with tabs[6]:
     # Botón para descargar
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar historial CSV", data=csv, file_name="historial_acuimayo.csv", mime="text/csv")
+
