@@ -3,7 +3,6 @@ import pandas as pd
 import requests
 import altair as alt
 import plotly.graph_objects as go
-from datetime import datetime
 
 # -------------------------------
 # CONFIGURACIÓN DE LA PÁGINA
@@ -14,17 +13,21 @@ st.set_page_config(
     layout="wide"
 )
 
+# 🔄 Refresco automático cada 30 segundos
+st_autorefresh = st.experimental_rerun  # para compatibilidad
+st_autorefresh = st.experimental_autorefresh(interval=30 * 1000, limit=None, key="refresh")
+
 # Encabezado con logos
 col1, col2, col3 = st.columns([1, 6, 1])
 with col1:
-    st.image("um_logo.png", width=100)
+    st.image("logo_universidad.png", width=100)
 with col2:
     st.markdown(
         "<h2 style='text-align:center;'>Picohidroelectrica Ingeniería Mecatrónica - Acuimayo Universidad Mariana</h2>",
         unsafe_allow_html=True
     )
 with col3:
-    st.image("acuimayo_logo.png", width=100)
+    st.image("logo_proyecto.png", width=100)
 
 st.write("---")
 
@@ -57,13 +60,12 @@ def mostrar_grafico(df, campo, nombre, unidad, color="blue"):
         st.warning(f"Datos no válidos en {nombre}")
         return
 
-    # Último valor
     valor_actual = df[campo].iloc[-1]
 
-    # Métrica
+    # Valor actual como métrica
     st.metric(label=f"{nombre} actual", value=f"{valor_actual:.2f} {unidad}")
 
-    # Gráfico con Altair
+    # Gráfico de línea
     chart = alt.Chart(df).mark_line(color=color).encode(
         x="created_at:T",
         y=alt.Y(campo, title=f"{nombre} ({unidad})")
@@ -71,7 +73,6 @@ def mostrar_grafico(df, campo, nombre, unidad, color="blue"):
         width="container",
         height=300
     )
-
     st.altair_chart(chart, use_container_width=True)
 
 # -------------------------------
@@ -79,7 +80,7 @@ def mostrar_grafico(df, campo, nombre, unidad, color="blue"):
 # -------------------------------
 def mostrar_gauge(valor, nombre, unidad, min_val=0, max_val=100, color="blue"):
     fig = go.Figure(go.Indicator(
-        mode="gauge+number",
+        mode="gauge+number+delta",
         value=valor,
         title={'text': f"{nombre} ({unidad})"},
         gauge={
@@ -104,7 +105,12 @@ df = cargar_datos_thingspeak(CHANNEL_ID, API_KEY, results=200)
 tabs = st.tabs(["🌡️ Temperatura", "💧 Humedad", "⚡ Voltaje", "🔌 Corriente", "💡 Potencia", "🔋 Energía", "📜 Historial"])
 
 with tabs[0]:
-    mostrar_grafico(df, "field1", "Temperatura", "°C", color="red")
+    if "field1" in df.columns:
+        df["field1"] = pd.to_numeric(df["field1"], errors="coerce")
+        valor = df["field1"].iloc[-1]
+        st.metric("Temperatura actual", f"{valor:.2f} °C")
+        mostrar_gauge(valor, "Temperatura", "°C", min_val=0, max_val=50, color="red")
+        mostrar_grafico(df, "field1", "Temperatura", "°C", color="red")
 
 with tabs[1]:
     mostrar_grafico(df, "field2", "Humedad", "%", color="green")
@@ -132,7 +138,5 @@ with tabs[5]:
 with tabs[6]:
     st.subheader("📜 Historial de datos")
     st.dataframe(df)
-    # Botón para descargar
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button("Descargar historial CSV", data=csv, file_name="historial_acuimayo.csv", mime="text/csv")
-
