@@ -35,12 +35,12 @@ def get_data():
 col1, col2, col3 = st.columns([1, 4, 1])
 
 with col1:
-    st.image("logo_um.png", width=120)
+    st.image("um_logo.png", width=120)
 with col2:
     st.title("🌊 PicoHidroelectrica Ingeniería Mecatrónica - Acuimayo")
     st.write("📍 Proyecto en la piscicultura Acuimayo (Sibundoy, Putumayo)")
 with col3:
-    st.image("logo_acuimayo.png", width=120)
+    st.image("acuimayo_logo.png", width=120)
 
 # ===== CARGA DE DATOS =====
 df = get_data()
@@ -134,4 +134,5 @@ if not df.empty:
 
 else:
     st.warning("⚠ No se pudieron cargar los datos aún.")
+
 
