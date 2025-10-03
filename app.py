@@ -30,7 +30,7 @@ def get_data():
 # ===== ENCABEZADO CON LOGOS =====
 col1, col2, col3 = st.columns([1,6,1])
 with col1:
-    st.image("images/um_logo.png", width=100)  # Logo Universidad Mariana
+    st.image("um_logo.png", width=100)  # Logo Universidad Mariana
 with col2:
     st.markdown(
         "<h2 style='text-align: center;'>🌊 PicoHidroelectrica - Ingeniería Mecatrónica<br>"
@@ -38,7 +38,7 @@ with col2:
         unsafe_allow_html=True
     )
 with col3:
-    st.image("images/acuimayo_logo.png", width=100)  # Logo Acuimayo
+    st.image("acuimayo_logo.png", width=100)  # Logo Acuimayo
 
 st.write("Visualización en tiempo real de los datos enviados desde el ESP32 en la planta de Acuimayo.")
 
@@ -102,3 +102,4 @@ if not df.empty:
 
 else:
     st.warning("⚠ No se pudieron cargar los datos aún.")
+
