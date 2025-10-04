@@ -13,8 +13,26 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("⚡ Picohidroelectrica Ingeniería Mecatrónica - Acuimayo - Universidad Mariana")
-st.markdown("Piscicultura Acuimayo, Sibundoy - Putumayo")
+# ------------------------
+# Encabezado con logos
+# ------------------------
+col1, col2, col3, col4 = st.columns([1,2,2,1])
+
+with col1:
+    st.image("https://www.umariana.edu.co/images/logo-universidad-mariana.png", width=120)
+
+with col2:
+    st.markdown("<h3 style='text-align:center;'>Picohidroelectrica</h3>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align:center;'>Ingeniería Mecatrónica</h4>", unsafe_allow_html=True)
+
+with col3:
+    st.markdown("<h4 style='text-align:center;'>Piscicultura Acuimayo</h4>", unsafe_allow_html=True)
+    st.markdown("<h5 style='text-align:center;'>Sibundoy - Putumayo</h5>", unsafe_allow_html=True)
+
+with col4:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Logo-fish.png/800px-Logo-fish.png", width=100)
+
+st.markdown("---")
 
 # ------------------------
 # Autorefresh cada 30s
