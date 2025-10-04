@@ -10,6 +10,7 @@ from streamlit_autorefresh import st_autorefresh
 # ------------------------
 st.set_page_config(
     page_title="Picohidroelectrica Ingeniería Mecatrónica - Acuimayo Universidad Mariana",
+    page_title="AUTOR: TITOPIA",
     layout="wide"
 )
 
@@ -19,7 +20,7 @@ st.set_page_config(
 col1, col2, col3, col4 = st.columns([1,2,2,1])
 
 with col1:
-    st.image("um_logo.png", width=120)
+    st.image("um_logo.png", width=300)
 
 with col2:
     st.markdown("<h3 style='text-align:center;'>Picohidroelectrica</h3>", unsafe_allow_html=True)
@@ -30,7 +31,7 @@ with col3:
     st.markdown("<h5 style='text-align:center;'>Sibundoy - Putumayo</h5>", unsafe_allow_html=True)
 
 with col4:
-    st.image("acuimayo_logo.png", width=100)
+    st.image("acuimayo_logo.png", width=300)
 
 st.markdown("---")
 
@@ -109,4 +110,5 @@ with tab4:
         tooltip=["Tiempo:T", "Temperatura:Q"]
     ).properties(title="Histórico de temperatura")
     st.altair_chart(chart_t, use_container_width=True)
+
 
