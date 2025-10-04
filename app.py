@@ -1,138 +1,93 @@
 import streamlit as st
 import pandas as pd
-import requests
+import numpy as np
 import altair as alt
 import plotly.graph_objects as go
 from streamlit_autorefresh import st_autorefresh
 
-# ===== CONFIGURACIÓN =====
-CHANNEL_ID = "3099319"
-READ_API_KEY = "33IXOBQJG1S9KVJY"
-N_RESULTS = 100
+# ------------------------
+# Configuración de la página
+# ------------------------
+st.set_page_config(
+    page_title="Picohidroelectrica Ingeniería Mecatrónica - Acuimayo Universidad Mariana",
+    layout="wide"
+)
 
-# ===== AUTOREFRESH cada 30s =====
-st_autorefresh(interval=30 * 1000, limit=None, key="refresh")
+st.title("⚡ Picohidroelectrica Ingeniería Mecatrónica - Acuimayo - Universidad Mariana")
+st.markdown("Piscicultura Acuimayo, Sibundoy - Putumayo")
 
-# ===== FUNCIÓN PARA DESCARGAR DATOS =====
-def get_data():
-    url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results={N_RESULTS}"
-    if READ_API_KEY:
-        url += f"&api_key={READ_API_KEY}"
-    r = requests.get(url)
-    if r.status_code == 200:
-        data = r.json()["feeds"]
-        df = pd.DataFrame(data)
-        df["created_at"] = pd.to_datetime(df["created_at"])
-        for i in range(1, 8):
-            if f"field{i}" in df.columns:
-                df[f"field{i}"] = pd.to_numeric(df[f"field{i}"], errors="coerce")
-        return df
-    else:
-        st.error("❌ Error al obtener datos de ThingSpeak")
-        return pd.DataFrame()
+# ------------------------
+# Autorefresh cada 30s
+# ------------------------
+st_autorefresh(interval=30 * 1000, key="refresh")
 
-# ===== ENCABEZADO CON LOGOS =====
-col1, col2, col3 = st.columns([1, 4, 1])
+# ------------------------
+# Simulación de datos
+# ------------------------
+df = pd.DataFrame({
+    "Tiempo": pd.date_range("2025-10-01", periods=20, freq="H"),
+    "Voltaje": np.random.uniform(210, 230, 20),
+    "Corriente": np.random.uniform(5, 15, 20),
+    "Energia": np.random.randint(50, 150, 20),
+    "Temperatura": np.random.uniform(18, 25, 20)
+})
 
-with col1:
-    st.image("um_logo.png", width=120)
-with col2:
-    st.title("🌊 PicoHidroelectrica Ingeniería Mecatrónica - Acuimayo")
-    st.write("📍 Proyecto en la piscicultura Acuimayo (Sibundoy, Putumayo)")
-with col3:
-    st.image("acuimayo_logo.png", width=120)
+# Último valor de temperatura
+temp_actual = df["Temperatura"].iloc[-1]
 
-# ===== CARGA DE DATOS =====
-df = get_data()
+# ------------------------
+# Pestañas
+# ------------------------
+tab1, tab2, tab3, tab4 = st.tabs(["🔌 Voltaje", "🔋 Corriente", "⚡ Energía", "🌡️ Temperatura"])
 
-if not df.empty:
-    tab1, tab2, tab3 = st.tabs(["🌡️ Temperatura", "⚡ Energía Eléctrica", "📊 Datos crudos"])
+with tab1:
+    chart_v = alt.Chart(df).mark_line(point=True).encode(
+        x="Tiempo:T",
+        y=alt.Y("Voltaje:Q", title="Voltaje (V)"),
+        tooltip=["Tiempo:T", "Voltaje:Q"]
+    ).properties(title="Voltaje generado")
+    st.altair_chart(chart_v, use_container_width=True)
 
-    # ===== TAB TEMPERATURA =====
-    with tab1:
-        st.subheader("🌡️ Temperatura (°C)")
-        last_temp = df["field1"].dropna().iloc[-1] if not df["field1"].dropna().empty else None
+with tab2:
+    chart_c = alt.Chart(df).mark_line(point=True).encode(
+        x="Tiempo:T",
+        y=alt.Y("Corriente:Q", title="Corriente (A)"),
+        tooltip=["Tiempo:T", "Corriente:Q"]
+    ).properties(title="Corriente generada")
+    st.altair_chart(chart_c, use_container_width=True)
 
-        if last_temp is not None:
-            st.metric(label="Temperatura Actual (°C)", value=f"{last_temp:.2f}")
-            gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=last_temp,
-                title={'text': "Temperatura (°C)"},
-                gauge={'axis': {'range': [0, 50]},
-                       'bar': {'color': "red"},
-                       'steps': [
-                           {'range': [0, 20], 'color': "lightblue"},
-                           {'range': [20, 35], 'color': "lightgreen"},
-                           {'range': [35, 50], 'color': "lightcoral"}]}
-            ))
-            st.plotly_chart(gauge, use_container_width=True)
+with tab3:
+    chart_e = alt.Chart(df).mark_line(point=True).encode(
+        x="Tiempo:T",
+        y=alt.Y("Energia:Q", title="Energía (kWh)"),
+        tooltip=["Tiempo:T", "Energia:Q"]
+    ).properties(title="Energía generada")
+    st.altair_chart(chart_e, use_container_width=True)
 
-        chart_temp = alt.Chart(df).mark_line(color="red").encode(
-            x="created_at:T", y="field1:Q", tooltip=["created_at", "field1"]
-        ).properties(title="Histórico de Temperatura")
-        st.altair_chart(chart_temp, use_container_width=True)
+    # Botón para descargar historial
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Descargar historial de datos", csv, "historial_acuimayo.csv", "text/csv")
 
-    # ===== TAB ENERGÍA ELÉCTRICA =====
-    with tab2:
-        st.subheader("⚡ Monitoreo Eléctrico")
+with tab4:
+    st.subheader("Temperatura del agua (°C)")
 
-        col1, col2 = st.columns(2)
+    # Gadget tipo velocímetro
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=temp_actual,
+        title={'text': "Temperatura actual"},
+        gauge={'axis': {'range': [0, 40]},
+               'bar': {'color': "blue"},
+               'steps': [
+                   {'range': [0, 20], 'color': "lightblue"},
+                   {'range': [20, 30], 'color': "lightgreen"},
+                   {'range': [30, 40], 'color': "red"}]}
+    ))
+    st.plotly_chart(fig, use_container_width=True)
 
-        # Voltaje
-        with col1:
-            if "field4" in df.columns:
-                last_v = df["field4"].dropna().iloc[-1]
-                st.metric("Voltaje (V)", f"{last_v:.2f}")
-                gauge_v = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=last_v,
-                    title={'text': "Voltaje (V)"},
-                    gauge={'axis': {'range': [0, 250]}, 'bar': {'color': "orange"}}
-                ))
-                st.plotly_chart(gauge_v, use_container_width=True)
-
-        # Corriente
-        with col2:
-            if "field5" in df.columns:
-                last_i = df["field5"].dropna().iloc[-1]
-                st.metric("Corriente (A)", f"{last_i:.2f}")
-                gauge_i = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=last_i,
-                    title={'text': "Corriente (A)"},
-                    gauge={'axis': {'range': [0, 50]}, 'bar': {'color': "blue"}}
-                ))
-                st.plotly_chart(gauge_i, use_container_width=True)
-
-        # Gráficos históricos
-        chart_v = alt.Chart(df).mark_line(color="orange").encode(
-            x="created_at:T", y="field4:Q", tooltip=["created_at", "field4"]
-        ).properties(title="Voltaje (V)")
-        chart_i = alt.Chart(df).mark_line(color="blue").encode(
-            x="created_at:T", y="field5:Q", tooltip=["created_at", "field5"]
-        ).properties(title="Corriente (A)")
-        chart_p = alt.Chart(df).mark_line(color="purple").encode(
-            x="created_at:T", y="field6:Q", tooltip=["created_at", "field6"]
-        ).properties(title="Potencia (W)")
-        chart_e = alt.Chart(df).mark_line(color="green").encode(
-            x="created_at:T", y="field7:Q", tooltip=["created_at", "field7"]
-        ).properties(title="Energía (kWh)")
-
-        st.altair_chart(chart_v, use_container_width=True)
-        st.altair_chart(chart_i, use_container_width=True)
-        st.altair_chart(chart_p, use_container_width=True)
-        st.altair_chart(chart_e, use_container_width=True)
-
-    # ===== TAB DATOS CRUDOS =====
-    with tab3:
-        st.subheader("📊 Datos crudos recientes")
-        st.write(df.tail(20))
-
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇ Descargar CSV", csv, "acuimayo_datos.csv", "text/csv")
-
-else:
-    st.warning("⚠ No se pudieron cargar los datos aún.")
-
-
+    chart_t = alt.Chart(df).mark_line(point=True).encode(
+        x="Tiempo:T",
+        y=alt.Y("Temperatura:Q", title="Temperatura (°C)"),
+        tooltip=["Tiempo:T", "Temperatura:Q"]
+    ).properties(title="Histórico de temperatura")
+    st.altair_chart(chart_t, use_container_width=True)
