@@ -56,7 +56,7 @@ with col3:
     st.markdown("<h5 style='text-align:center;'>Sibundoy - Putumayo</h5>", unsafe_allow_html=True)
 
 with col4:
-    st.image("acuimayo_logo.png/800px-Logo-fish.png", width=100)
+    st.image("acuimayo_logo.png", width=100)
 
 st.markdown("---")
 
@@ -143,3 +143,4 @@ if not df.empty:
 
 else:
     st.warning("⚠ No se pudieron cargar datos de ThingSpeak aún.")
+
